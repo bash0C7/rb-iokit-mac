@@ -1,0 +1,144 @@
+module IokitMac
+  # The gem version.
+  VERSION: String
+
+  # Base class for errors raised by this gem.
+  class Error < StandardError
+  end
+
+  # Raised when an IOKit or IOPS call fails. The message reads "<source>: <code>: <detail>".
+  class ReadError < Error
+  end
+
+  # Returns the JSON for Battery.read.
+  def self._battery_read: () -> String
+
+  # Returns the JSON for PowerAdapter.read.
+  def self._power_adapter_read: () -> String
+
+  # Returns the JSON for Clamshell.closed?.
+  def self._clamshell_read: () -> String
+
+  # Returns the JSON for Idle.seconds.
+  def self._idle_read: () -> String
+
+  # Returns the JSON for Thermal.state.
+  def self._thermal_read: () -> String
+
+  # Returns the JSON for Usb.devices.
+  def self._usb_devices_read: () -> String
+
+  # Returns the JSON for Bluetooth.paired_devices.
+  def self._bluetooth_paired_devices_read: () -> String
+
+  module Parse
+    # Decodes the JSON returned by a reader, with Symbol keys.
+    # Raises ReadError, prefixed with +source+, when the JSON is an {"error": code, "detail": detail} envelope.
+    def self.payload: (String raw, source: String) -> untyped
+  end
+
+  module Battery
+    # The internal battery. A key is absent when macOS does not report its value.
+    # The first group comes from IOPSCopyPowerSourcesInfo, the second from the AppleSmartBattery registry entry.
+    type info = {
+      ?percent: Float,
+      ?current_capacity_percent: Integer,
+      ?max_capacity_percent: Integer,
+      charging: bool,
+      charged: bool,
+      ?time_to_empty_minutes: Integer,
+      ?time_to_full_minutes: Integer,
+      ?source: String,
+      ?power_source_state: String,
+      ?cycle_count: Integer,
+      ?design_capacity_mah: Integer,
+      ?current_capacity_mah: Integer,
+      ?max_capacity_mah: Integer,
+      ?voltage_mv: Integer,
+      ?serial: String,
+      ?device_name: String,
+      ?installed: bool,
+      ?fully_charged: bool
+    }
+
+    # Reads the internal battery. Returns nil on a Mac without one.
+    # +percent+ is current_capacity_percent / max_capacity_percent * 100.
+    # +time_to_empty_minutes+ and +time_to_full_minutes+ are absent while macOS is still estimating them.
+    def self.read: () -> info?
+  end
+
+  module PowerAdapter
+    # The connected power adapter. A key is absent when the adapter does not report its value.
+    type info = {
+      ?watts: Integer,
+      ?current_ma: Integer,
+      ?voltage_mv: Integer,
+      ?adapter_id: Integer,
+      ?family_code: Integer,
+      ?serial: String,
+      ?name: String,
+      ?manufacturer: String,
+      ?model: String,
+      ?description: String,
+      ?wireless: bool,
+      ?firmware_version: String,
+      ?hardware_version: String
+    }
+
+    # Reads IOPSCopyExternalPowerAdapterDetails. Returns nil when no adapter is connected.
+    def self.read: () -> info?
+  end
+
+  module Clamshell
+    # Reads AppleClamshellState of IOPMrootDomain: true when the lid is closed, false when it is open.
+    # Returns nil on a Mac without a lid.
+    def self.closed?: () -> bool?
+  end
+
+  module Idle
+    # Returns the seconds since the last keyboard, mouse, or trackpad input (HIDIdleTime of IOHIDSystem).
+    def self.seconds: () -> Float
+  end
+
+  module Thermal
+    # The values Thermal.state returns.
+    STATES: Array[state]
+
+    type state = :nominal | :fair | :serious | :critical | :unknown
+
+    # Returns ProcessInfo.thermalState. :unknown stands for a case added to macOS after this gem was built.
+    def self.state: () -> state
+  end
+
+  module Usb
+    # One IOUSBHostDevice. A key is absent when the device does not report its value.
+    type device = {
+      ?vendor_id: Integer,
+      ?product_id: Integer,
+      ?name: String,
+      ?vendor_name: String,
+      ?serial: String,
+      ?device_class: Integer,
+      ?device_subclass: Integer,
+      ?device_protocol: Integer,
+      ?bcd_device: Integer
+    }
+
+    # Lists the connected USB devices, including built-in ones.
+    def self.devices: () -> Array[device]
+  end
+
+  module Bluetooth
+    # One paired Bluetooth device. +name+ is absent when the device has no name.
+    type device = {
+      ?name: String,
+      address: String,
+      paired: bool,
+      connected: bool
+    }
+
+    # Lists the devices paired with this Mac (IOBluetoothDevice.pairedDevices).
+    # The list shrinks to the enumerable subset while Bluetooth is turned off.
+    def self.paired_devices: () -> Array[device]
+  end
+end
