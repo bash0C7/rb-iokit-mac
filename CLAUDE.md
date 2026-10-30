@@ -102,4 +102,3 @@ macOS 27+, Apple Silicon, Xcode 27 (Swift 6.4, builds run `xcrun swift`), Ruby 4
 - Do not add a signal that needs `sudo`, private API, or a TCC prompt beyond Bluetooth
 - Do not put real serials, device names, or Bluetooth addresses into tests, fixtures, or docs
 - Commit messages in English, conventional commits style
-- `.claude/` is committed
